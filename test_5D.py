@@ -261,7 +261,7 @@ if __name__ == '__main__':
             for testset, name in zip(denoise_tests, denoise_splits):
 
                 print('Start {} testing Sigma=25...'.format(name))
-                p1, s1 = test_Denoise(net, testset, sigma=25, interact_label=0)
+                p1, s1, _ = test_Denoise(net, testset, sigma=25, interact_label=0)
                 p.append(p1)
                 s.append(s1)
 
@@ -271,20 +271,20 @@ if __name__ == '__main__':
                 print('Start testing {} rain streak removal...'.format(name))
                 testopt.derain_path = os.path.join(derain_base_path, name)
                 derain_set = DerainDehazeDataset(testopt,task="derain",addnoise=False, sigma=15)
-                p2, s2 = test_Derain_Dehaze(net, derain_set, task="derain", interact_label=1)
+                p2, s2, _ = test_Derain_Dehaze(net, derain_set, task="derain", interact_label=1)
 
                 p.append(p2)
                 s.append(s2)
 
             print('Start testing SOTS...')
             dehaze_set = DerainDehazeDataset(testopt,task="dehaze",addnoise=False, sigma=15)
-            p3, s3 = test_Derain_Dehaze(net, dehaze_set, task="dehaze", interact_label=2)
+            p3, s3, _ = test_Derain_Dehaze(net, dehaze_set, task="dehaze", interact_label=2)
             p.append(p3)
             s.append(s3)
 
             print('Start testing GoPro...')
             deblur_set = DeblurTestDataset(testopt, addnoise=False, sigma=15)
-            p4, s4 = test_Deblur(net, deblur_set, task="deblur", interact_label=3)
+            p4, s4, _ = test_Deblur(net, deblur_set, task="deblur", interact_label=3)
             p.append(p4)
             s.append(s4)
 
