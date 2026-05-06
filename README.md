@@ -17,14 +17,6 @@ For each run, only the final checkpoint and final prompt bank are kept:
 - checkpoint: `last.ckpt`
 - prompt bank: `last`
 
-## Highlights
-
-- Unified training entry for each setting: `train_1D.py`, `train_3D.py`, `train_5D.py`, `train_compos.py`
-- Unified model definitions under `net/`
-- Unified configuration under `options/`
-- Explicit dataset structure and command examples
-- Final-only saving to keep the repository clean
-
 ## Repository Structure
 
 ```text
@@ -489,13 +481,6 @@ save_prompts_1D/
 └── deblur/
     └── last*
 ```
-
-## Practical Notes
-
-- `1D` uses task-specific subdirectories for checkpoint/prompt loading and saving.
-- `3D`, `5D`, and `compos` save directly under their own checkpoint/prompt directories.
-- The current training scripts use TensorBoard by default.
-- Some auxiliary debugging utilities still exist in the codebase, but the main training and testing paths are now consolidated and ready for public release.
 
 ## Citation
 
