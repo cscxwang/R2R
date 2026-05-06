@@ -7,6 +7,10 @@ logs/
 output/
 wandb/
 
+data/
+ckpt/
+prompt/
+
 train_ckpt_*/
 train_ckpt_1D/
 train_ckpt_1D_f/
