@@ -87,15 +87,6 @@ def replace_layers(model, base_size, train_size, fast_imp, **kwargs):
             assert m.output_size == 1
             setattr(model, n, pool)
 
-'''
-ref.
-@article{chu2021tlsc,
-  title={Revisiting Global Statistics Aggregation for Improving Image Restoration},
-  author={Chu, Xiaojie and Chen, Liangyu and and Chen, Chengpeng and Lu, Xin},
-  journal={arXiv preprint arXiv:2112.04491},
-  year={2021}
-}
-'''
 class Local_Base():
     def convert(self, *args, train_size, **kwargs):
         self = self.cuda()
@@ -243,7 +234,7 @@ class NAFKeyEncoder(nn.Module):
 class Classifier(nn.Module):
     def __init__(self, in_channels=512, num_classes=3):
         super(Classifier, self).__init__()
-        self.avgpool = nn.AdaptiveAvgPool2d(1)  # 输出 [b, 512, 1, 1]
+        self.avgpool = nn.AdaptiveAvgPool2d(1)
 
         self.fc = nn.Sequential(
             nn.Linear(in_channels, num_classes),
@@ -253,7 +244,7 @@ class Classifier(nn.Module):
         x = self.avgpool(x)       # [b, 512, 1, 1]
         x = torch.flatten(x, 1)   # [b, 512]
         x = self.fc(x)            # [b, num_classes]
-        return x                  # 直接输出 logits，后面配合 CrossEntropyLoss
+        return x
 class NAFMemEncoder(nn.Module):
     def __init__(self, image_channels=3, deg_channel=1, width=32, middle_blk_num=1, enc_blk_nums=[2,2,4,8]):
         super().__init__()

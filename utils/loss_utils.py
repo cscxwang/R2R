@@ -24,8 +24,6 @@ class GANLoss(nn.Module):
             # pdb.set_trace()
             if create_label:
                 real_tensor = self.Tensor(input.size()).fill_(self.real_label)
-                # self.real_label_var = Variable(real_tensor, requires_grad=False)
-                # self.real_label_var = torch.Tensor(real_tensor)
                 self.real_label_var = real_tensor
             target_tensor = self.real_label_var
         else:
@@ -33,8 +31,6 @@ class GANLoss(nn.Module):
             create_label = ((self.fake_label_var is None) or (self.fake_label_var.numel() != input.numel()))
             if create_label:
                 fake_tensor = self.Tensor(input.size()).fill_(self.fake_label)
-                # self.fake_label_var = Variable(fake_tensor, requires_grad=False)
-                # self.fake_label_var = torch.Tensor(fake_tensor)
                 self.fake_label_var = fake_tensor
             target_tensor = self.fake_label_var
         return target_tensor
@@ -43,4 +39,3 @@ class GANLoss(nn.Module):
         target_tensor = self.get_target_tensor(input, target_is_real)
         # pdb.set_trace()
         return self.loss(input, target_tensor)
-

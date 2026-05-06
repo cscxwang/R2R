@@ -234,7 +234,7 @@ class NAFKeyEncoder(nn.Module):
 class Classifier(nn.Module):
     def __init__(self, in_channels=512, num_classes=4):
         super(Classifier, self).__init__()
-        self.avgpool = nn.AdaptiveAvgPool2d(1)  # 输出 [b, 512, 1, 1]
+        self.avgpool = nn.AdaptiveAvgPool2d(1)
 
         self.fc = nn.Sequential(
             nn.Linear(in_channels, num_classes),
@@ -244,7 +244,7 @@ class Classifier(nn.Module):
         x = self.avgpool(x)       # [b, 512, 1, 1]
         x = torch.flatten(x, 1)   # [b, 512]
         x = self.fc(x)            # [b, num_classes]
-        return x                  # 直接输出 logits，后面配合 CrossEntropyLoss
+        return x
 class NAFMemEncoder(nn.Module):
     def __init__(self, image_channels=3, deg_channel=1, width=32, middle_blk_num=1, enc_blk_nums=[2,2,4,8], num_classes=4):
         super().__init__()
@@ -362,7 +362,7 @@ class skipP(nn.Module):
         readout = self.sel_channel(readout, self.channel)
 
         interleaved = torch.zeros(B, 2 * x.shape[1], x.shape[2], x.shape[3]).to(x.device)
-        interleaved[:, 0::2, :, :] = x  # 偶数索引：特征A
+        interleaved[:, 0::2, :, :] = x
         interleaved[:, 1::2, :, :] = readout
         gate = torch.sigmoid(self.fuse_gate(interleaved))
         x = x * (1 - gate) + readout * gate
@@ -487,7 +487,7 @@ class R2R(nn.Module):
             read_out = torch.zeros_like(qv).cuda()
 
         interleaved = torch.zeros(B, 2 * x.shape[1], x.shape[2], x.shape[3]).to(x.device)
-        interleaved[:, 0::2, :, :] = qv  # 偶数索引：特征A
+        interleaved[:, 0::2, :, :] = qv
         interleaved[:, 1::2, :, :] = read_out
         gate = torch.sigmoid(self.fuse_gate(interleaved))
         x = qv * (1 - gate) + read_out * gate

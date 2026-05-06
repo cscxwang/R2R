@@ -12,133 +12,12 @@ import torch
 from utils.image_utils import random_augmentation, crop_img
 from utils.degradation_utils import Degradation
 
-
-# class CDD11(Dataset):
-#     def __init__(self, args, split: str = "train", subset: str = "all"):
-#         super(CDD11, self).__init__()
-#
-#         self.args = args
-#         self.toTensor = ToTensor()
-#         # self.de_type = self.args.de_type
-#         self.dataset_split = split
-#         self.subset = subset
-#         if split == "train":
-#             self.patch_size = args.patch_size
-#         else:
-#             self.patch_size = 64
-#
-#         self._init()
-#
-#     def __getitem__(self, index):
-#         # Randomly select a degradation type
-#         if self.dataset_split == "train":
-#             degradation_type = random.choice(list(self.degraded_dict.keys()))
-#             degraded_image_path = random.choice(self.degraded_dict[degradation_type])
-#         else:
-#             degradation_type = self.subset
-#             degraded_image_path = self.degraded_dict[degradation_type][index]
-#
-#         # Select a degraded image within that type
-#
-#         degraded_name = os.path.basename(degraded_image_path)
-#
-#         # Get the corresponding clean image based on the file name
-#         image_name = os.path.basename(degraded_image_path)
-#         assert degraded_name == image_name
-#         clean_image_path = os.path.join(os.path.dirname(self.clean[0]), image_name)
-#
-#         # Load the images
-#         # lr = crop_img(np.array(Image.open(degraded_image_path).convert('RGB')), base=16)
-#         lr = np.array(Image.open(degraded_image_path).convert('RGB'))
-#         # hr = crop_img(np.array(Image.open(clean_image_path).convert('RGB')), base=16)
-#         hr = np.array(Image.open(clean_image_path).convert('RGB'))
-#         # Apply random augmentation and crop
-#         if self.dataset_split == "train":
-#             lr, hr = random_augmentation(*self._crop_patch(lr, hr))
-#
-#         # Convert to tensors
-#         lr = self.toTensor(lr)
-#         hr = self.toTensor(hr)
-#
-#         return [clean_image_path, degradation_type], lr, hr
-#
-#     def __len__(self):
-#         return sum(len(images) for images in self.degraded_dict.values())
-#
-#     def _init(self):
-#         data_dir = os.path.join(self.args.cdd11_path, "cdd11")
-#         self.clean = sorted(glob.glob(os.path.join(data_dir, f"{self.dataset_split}/clear", "*.png")))
-#
-#         if len(self.clean) == 0:
-#             raise ValueError(f"No clean images found in {os.path.join(data_dir, f'{self.dataset_split}/clear')}")
-#
-#         self.degraded_dict = {}
-#         allowed_degradation_folders = self._filter_degradation_folders(data_dir)
-#         for folder in allowed_degradation_folders:
-#             folder_name = os.path.basename(folder.strip('/'))
-#             degraded_images = sorted(glob.glob(os.path.join(folder, "*.png")))
-#
-#             if len(degraded_images) == 0:
-#                 raise ValueError(f"No images found in {folder_name}")
-#
-#             # scale dataset length
-#             if self.dataset_split == "train":
-#                 degraded_images *= 2
-#
-#             self.degraded_dict[folder_name] = degraded_images
-#
-#     def _filter_degradation_folders(self, data_dir):
-#         """
-#         This function returns folders based on the degradation_type_mode.
-#         'single', 'double', 'triple', or 'all' degradation types will be returned.
-#         """
-#         degradation_folders = sorted(glob.glob(os.path.join(data_dir, self.dataset_split, "*/")))
-#         filtered_folders = []
-#
-#         for folder in degradation_folders:
-#             folder_name = os.path.basename(folder.strip('/'))
-#             if folder_name == "clear":
-#                 continue
-#
-#             # Count the number of degradations based on the number of underscores in the folder name
-#             degradation_count = folder_name.count('_') + 1
-#
-#             # Check the degradation type mode and filter accordingly
-#             if self.subset == "single" and degradation_count == 1:
-#                 filtered_folders.append(folder)
-#             elif self.subset == "double" and degradation_count == 2:
-#                 filtered_folders.append(folder)
-#             elif self.subset == "triple" and degradation_count == 3:
-#                 filtered_folders.append(folder)
-#             elif self.subset == "all":
-#                 filtered_folders.append(folder)
-#             # If self.subset is a specific degradation folder name, match it exactly
-#             elif self.subset not in ["single", "double", "triple", "all"]:
-#                 if folder_name == self.subset:
-#                     filtered_folders.append(folder)
-#
-#         print(f"Degradation type mode: {self.subset}")
-#         print(f"Loading degradation folders: {[os.path.basename(f.strip('/')) for f in filtered_folders]}")
-#         return filtered_folders
-#
-#     def _crop_patch(self, img_1, img_2):
-#         # Crop a patch from both images (degraded and clean) at the same location
-#         H = img_1.shape[0]
-#         W = img_1.shape[1]
-#         ind_H = random.randint(0, H - self.args.patch_size)
-#         ind_W = random.randint(0, W - self.args.patch_size)
-#
-#         patch_1 = img_1[ind_H:ind_H + self.args.patch_size, ind_W:ind_W + self.args.patch_size]
-#         patch_2 = img_2[ind_H:ind_H + self.args.patch_size, ind_W:ind_W + self.args.patch_size]
-#
-#         return patch_1, patch_2
 class CDD11(Dataset):
     def __init__(self, args, split: str = "train", subset: str = "all"):
         super(CDD11, self).__init__()
 
         self.args = args
         self.toTensor = ToTensor()
-        # self.de_type = self.args.de_type
         self.dataset_split = split
         self.subset = subset
         if split == "train":
@@ -167,9 +46,7 @@ class CDD11(Dataset):
         clean_image_path = os.path.join(os.path.dirname(self.clean[0]), image_name)
 
         # Load the images
-        # lr = crop_img(np.array(Image.open(degraded_image_path).convert('RGB')), base=16)
         lr = np.array(Image.open(degraded_image_path).convert('RGB'))
-        # hr = crop_img(np.array(Image.open(clean_image_path).convert('RGB')), base=16)
         hr = np.array(Image.open(clean_image_path).convert('RGB'))
         # Apply random augmentation and crop
         if self.dataset_split == "train":
@@ -200,9 +77,7 @@ class CDD11(Dataset):
             if len(degraded_images) == 0:
                 raise ValueError(f"No images found in {folder_name}")
 
-            # scale dataset length
             if self.dataset_split == "train":
-                # degraded_images *= 2
                 degraded_images *= 9
 
             self.degraded_dict[folder_name] = degraded_images
@@ -318,7 +193,6 @@ class PromptTrainDataset(Dataset):
         hazy = self.args.data_file_dir + "hazy/hazy_outside.txt"
         temp_ids+= [self.args.dehaze_dir + id_.strip() for id_ in open(hazy)]
         self.hazy_ids = [{"clean_id" : x,"de_type":4} for x in temp_ids]
-        # self.hazy_ids = self.hazy_ids * 2
 
         self.hazy_counter = 0
         
@@ -412,12 +286,6 @@ class PromptTrainDataset(Dataset):
 
             degrad_patch, clean_patch = random_augmentation(*self._crop_patch(degrad_img, clean_img))
 
-
-        # # ===================================================================================
-        # # add noise to GT
-        # noise = np.random.randn(*clean_patch.shape)
-        # clean_patch = np.clip(clean_patch + noise * 15, 0, 255).astype(np.uint8)
-        # # ===================================================================================
         clean_patch = self.toTensor(clean_patch)
         degrad_patch = self.toTensor(degrad_patch)
 
@@ -562,8 +430,6 @@ class PromptTrainDataset5D(Dataset):
         return nonhazy_name
 
     def _get_sharp_name(self, blur_name):  # ------get no blur
-
-        # sharp_name = blur_name.split("blur")[0] + 'sharp/' + blur_name.split('/')[-1]
         sharp_name = blur_name.split("/blur")[0] + '/sharp/' + blur_name.split('/')[-1]
         return sharp_name
 
@@ -696,7 +562,6 @@ class DenoiseTestDataset(Dataset):
             for w_idx in w_idx_list:
                 in_patch = input_[..., h_idx:h_idx+tile, w_idx:w_idx+tile]
                 out_patch = in_patch
-                # out_patch = model(in_patch)
                 out_patch_mask = torch.ones_like(in_patch)
 
                 E[..., h_idx:(h_idx+tile), w_idx:(w_idx+tile)].add_(out_patch)
@@ -835,9 +700,7 @@ class DeblurTestDataset(Dataset):
     def _init_input_ids(self):
         self.ids = []
         name_list = os.listdir(self.args.deblur_path + 'blur/')
-        # name_list = os.listdir(self.args.deblur_path + 'test/test-close-ups/')
         self.ids += [self.args.deblur_path + 'blur/' + id_ for id_ in name_list]
-        # self.ids += [self.args.deblur_path + 'test/test-close-ups/' + id_ for id_ in name_list]
 
         self.length = len(self.ids)
 
@@ -845,7 +708,6 @@ class DeblurTestDataset(Dataset):
 
     def _get_gt_path(self, degraded_name):
         gt_name = degraded_name.replace("/blur", "/sharp")
-        # gt_name = degraded_name.replace("test/test-close-ups/", "GT/")
         return gt_name
 
     def __getitem__(self, idx):

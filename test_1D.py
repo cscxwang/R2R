@@ -192,81 +192,79 @@ if __name__ == '__main__':
 
     print("CKPT name : {}".format(ckpt_path))
 
-    for epoch in range(29, 30):# derain best: 129 ; denoise best: 224;; dehaze:167  15 ; lowlight best: 173; deblur best: 239; deblur-256 best: 238
-        de_type = {0: "denoise", 1: "derain", 2: "dehaze", 3: "deblur", 4: "lowlight"}
-        local_size = {0: 1080, 1: 1080, 2: 1080, 3: 224, 4: 1080}
-        print(str(epoch)+"    -------------------------------------------------------------------------")
-        testopt.derain_path = "data/Test/Derain/"
-        testopt.dehaze_path = "data/Test/Dehaze/"
-        testopt.denoise_path = "data/Test/Denoise/"
-        testopt.deblur_path = "data/Test/Deblur/"
-        testopt.lowlight_path = "data/Test/Lowlight/"
+    de_type = {0: "denoise", 1: "derain", 2: "dehaze", 3: "deblur", 4: "lowlight"}
+    local_size = {0: 1080, 1: 1080, 2: 1080, 3: 224, 4: 1080}
+    testopt.derain_path = "data/Test/Derain/"
+    testopt.dehaze_path = "data/Test/Dehaze/"
+    testopt.denoise_path = "data/Test/Denoise/"
+    testopt.deblur_path = "data/Test/Deblur/"
+    testopt.lowlight_path = "data/Test/Lowlight/"
 
-        name = "last"
-        net = R2RLocal(train_size=(1, 3, local_size[testopt.mode], local_size[testopt.mode]), ckpt_path=ckpt_path, prompts_path=testopt.prompt_dir, prompts_name=name, deg_type=de_type[testopt.mode], train_mode="finetune").cuda()
-        net = net.cuda()
+    name = "last"
+    net = R2RLocal(train_size=(1, 3, local_size[testopt.mode], local_size[testopt.mode]), ckpt_path=ckpt_path, prompts_path=testopt.prompt_dir, prompts_name=name, deg_type=de_type[testopt.mode], train_mode="finetune").cuda()
+    net = net.cuda()
 
-        net.eval()
+    net.eval()
 
-        if testopt.mode == 0:
-            for testset, name in zip(denoise_tests, denoise_splits):
+    if testopt.mode == 0:
+        for testset, name in zip(denoise_tests, denoise_splits):
 
-                print('Start {} testing Sigma=15...'.format(name))
-                test_Denoise(net, testset, sigma=15, interact_label=testopt.mode)
+            print('Start {} testing Sigma=15...'.format(name))
+            test_Denoise(net, testset, sigma=15, interact_label=testopt.mode)
 
-                print('Start {} testing Sigma=25...'.format(name))
-                test_Denoise(net, testset, sigma=25, interact_label=testopt.mode)
+            print('Start {} testing Sigma=25...'.format(name))
+            test_Denoise(net, testset, sigma=25, interact_label=testopt.mode)
 
-                print('Start {} testing Sigma=50...'.format(name))
-                test_Denoise(net, testset, sigma=50, interact_label=testopt.mode)
+            print('Start {} testing Sigma=50...'.format(name))
+            test_Denoise(net, testset, sigma=50, interact_label=testopt.mode)
 
-        elif testopt.mode == 1:
-            print('Start testing rain streak removal...')
-            derain_base_path = testopt.derain_path
-            for name in derain_splits:
-                print('Start testing {} rain streak removal...'.format(name))
-                testopt.derain_path = os.path.join(derain_base_path, name)
-                derain_set = DerainDehazeDataset(testopt, task='derain', addnoise=False, sigma=15)
-                test_Derain_Dehaze(net, derain_set, task="derain", interact_label=testopt.mode)
-        elif testopt.mode == 2:
-            print('Start testing SOTS...')
-            dehaze_set = DerainDehazeDataset(testopt,task='dehaze', addnoise=False, sigma=15)
-            test_Derain_Dehaze(net, dehaze_set, task="dehaze", interact_label=testopt.mode)
-        elif testopt.mode == 3:
-            print('Start testing GoPro...')
-            deblur_set = DeblurTestDataset(testopt, addnoise=False, sigma=15)
-            test_Deblur(net, deblur_set, task="deblur", interact_label=testopt.mode)
-        elif testopt.mode == 4:
-            print('Start testing LOL-v1...')
-            lowlight_set = LOLTestDataset(testopt, addnoise=False, sigma=15)
-            test_Lowlight(net, lowlight_set, task="lowlight", interact_label=testopt.mode)
-        elif testopt.mode == 5:
-            for testset, name in zip(denoise_tests, denoise_splits):
-                print('Start {} testing Sigma=15...'.format(name))
-                test_Denoise(net, testset, sigma=15, interact_label=0)
+    elif testopt.mode == 1:
+        print('Start testing rain streak removal...')
+        derain_base_path = testopt.derain_path
+        for name in derain_splits:
+            print('Start testing {} rain streak removal...'.format(name))
+            testopt.derain_path = os.path.join(derain_base_path, name)
+            derain_set = DerainDehazeDataset(testopt, task='derain', addnoise=False, sigma=15)
+            test_Derain_Dehaze(net, derain_set, task="derain", interact_label=testopt.mode)
+    elif testopt.mode == 2:
+        print('Start testing SOTS...')
+        dehaze_set = DerainDehazeDataset(testopt,task='dehaze', addnoise=False, sigma=15)
+        test_Derain_Dehaze(net, dehaze_set, task="dehaze", interact_label=testopt.mode)
+    elif testopt.mode == 3:
+        print('Start testing GoPro...')
+        deblur_set = DeblurTestDataset(testopt, addnoise=False, sigma=15)
+        test_Deblur(net, deblur_set, task="deblur", interact_label=testopt.mode)
+    elif testopt.mode == 4:
+        print('Start testing LOL-v1...')
+        lowlight_set = LOLTestDataset(testopt, addnoise=False, sigma=15)
+        test_Lowlight(net, lowlight_set, task="lowlight", interact_label=testopt.mode)
+    elif testopt.mode == 5:
+        for testset, name in zip(denoise_tests, denoise_splits):
+            print('Start {} testing Sigma=15...'.format(name))
+            test_Denoise(net, testset, sigma=15, interact_label=0)
 
-                print('Start {} testing Sigma=25...'.format(name))
-                test_Denoise(net, testset, sigma=25, interact_label=0)
+            print('Start {} testing Sigma=25...'.format(name))
+            test_Denoise(net, testset, sigma=25, interact_label=0)
 
-                print('Start {} testing Sigma=50...'.format(name))
-                test_Denoise(net, testset, sigma=50, interact_label=0)
+            print('Start {} testing Sigma=50...'.format(name))
+            test_Denoise(net, testset, sigma=50, interact_label=0)
 
-            derain_base_path = testopt.derain_path
-            print(derain_splits)
-            for name in derain_splits:
-                print('Start testing {} rain streak removal...'.format(name))
-                testopt.derain_path = os.path.join(derain_base_path, name)
-                derain_set = DerainDehazeDataset(testopt,task="derain",addnoise=False, sigma=15)
-                test_Derain_Dehaze(net, derain_set, task="derain", interact_label=1)
+        derain_base_path = testopt.derain_path
+        print(derain_splits)
+        for name in derain_splits:
+            print('Start testing {} rain streak removal...'.format(name))
+            testopt.derain_path = os.path.join(derain_base_path, name)
+            derain_set = DerainDehazeDataset(testopt,task="derain",addnoise=False, sigma=15)
+            test_Derain_Dehaze(net, derain_set, task="derain", interact_label=1)
 
-            print('Start testing SOTS...')
-            dehaze_set = DerainDehazeDataset(testopt,task="dehaze",addnoise=False, sigma=15)
-            test_Derain_Dehaze(net, dehaze_set, task="dehaze", interact_label=2)
+        print('Start testing SOTS...')
+        dehaze_set = DerainDehazeDataset(testopt,task="dehaze",addnoise=False, sigma=15)
+        test_Derain_Dehaze(net, dehaze_set, task="dehaze", interact_label=2)
 
-            print('Start testing GoPro...')
-            deblur_set = DeblurTestDataset(testopt, addnoise=False, sigma=15)
-            test_Deblur(net, deblur_set, task="deblur", interact_label=3)
+        print('Start testing GoPro...')
+        deblur_set = DeblurTestDataset(testopt, addnoise=False, sigma=15)
+        test_Deblur(net, deblur_set, task="deblur", interact_label=3)
 
-            print('Start testing LOL-v1...')
-            lowlight_set = LOLTestDataset(testopt, addnoise=False, sigma=15)
-            test_Lowlight(net, lowlight_set, task="lowlight", interact_label=4)
+        print('Start testing LOL-v1...')
+        lowlight_set = LOLTestDataset(testopt, addnoise=False, sigma=15)
+        test_Lowlight(net, lowlight_set, task="lowlight", interact_label=4)

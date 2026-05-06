@@ -74,77 +74,6 @@ class R2RModel(pl.LightningModule):
 
         return [optimizer], [scheduler]
 
-import numpy as np
-from matplotlib import cm
-import matplotlib.pyplot as plt
-
-def vis_degradation_overlay_simple(I_deg, I_gt,
-                                   cmap='hot',
-                                   alpha=0.6,
-                                   robust=True,
-                                   save_path="AAAAAAAAAA.jpg"):
-    """
-    只显示:
-      左: 退化图
-      右: 清晰图 + 退化残差伪彩 overlay
-    无 colorbar / 无 legend
-
-    I_deg: [1,3,H,W]
-    I_gt : [1,3,H,W]
-    """
-    assert I_deg.shape == I_gt.shape
-    assert I_deg.dim() == 4 and I_deg.shape[0] == 1
-
-    with torch.no_grad():
-        d = I_deg[0].float()
-        g = I_gt[0].float()
-        if d.max() > 1.5:
-            d = d / 255.0
-            g = g / 255.0
-
-        d = d.clamp(0, 1)
-        g = g.clamp(0, 1)
-
-        d_np = d.permute(1, 2, 0).cpu().numpy()  # [H,W,3]
-        g_np = g.permute(1, 2, 0).cpu().numpy()
-
-        diff = (d - g).abs().mean(dim=0)  # [H,W]
-
-        if robust:
-            arr = diff.view(-1).cpu().numpy()
-            low = np.percentile(arr, 1)
-            high = np.percentile(arr, 99)
-            if high - low < 1e-6:
-                diff_norm = torch.zeros_like(diff)
-            else:
-                diff_clamped = torch.clamp(diff, min=low, max=high)
-                diff_norm = (diff_clamped - low) / (high - low)
-        else:
-            min_v, max_v = diff.min(), diff.max()
-            if (max_v - min_v) < 1e-6:
-                diff_norm = torch.zeros_like(diff)
-            else:
-                diff_norm = (diff - min_v) / (max_v - min_v)
-
-        dm = diff_norm.cpu().numpy()  # [H,W], 0-1
-
-        cmap_fn = cm.get_cmap(cmap)
-        color_map = cmap_fn(dm)[..., :3]           # [H,W,3], 0-1
-        overlay = (1 - alpha) * g_np + alpha * color_map
-        overlay = np.clip(overlay, 0.0, 1.0)
-
-    fig, axs = plt.subplots(1, 2, figsize=(6, 3))
-
-    axs[0].imshow(d_np)
-    axs[0].axis('off')
-
-    axs[1].imshow(overlay)
-    axs[1].axis('off')
-
-    plt.tight_layout(pad=0.05)
-    if save_path is not None:
-        plt.savefig(save_path, bbox_inches='tight', pad_inches=0.0)
-    plt.show()
 def test_Denoise(net, dataset, sigma=15, interact_label=None):
     output_path = testopt.output_path + 'denoise/' + str(sigma) + '/'
     subprocess.check_output(['mkdir', '-p', output_path])
@@ -265,76 +194,73 @@ if __name__ == '__main__':
 
     print("CKPT name : {}".format(ckpt_path))
 
-    for epoch in range(230, 231): # best=124
-        print(str(epoch)+"    -------------------------------------------------------------------------")
+    name = "last"
+    net = R2RLocal(ckpt_path=ckpt_path, prompts_path=testopt.prompt_dir, prompts_name=name).cuda()
 
-        name = "last"
-        net = R2RLocal(ckpt_path=ckpt_path, prompts_path=testopt.prompt_dir, prompts_name=name).cuda()
+    testopt.derain_path = "data/Test/Derain/"
+    testopt.dehaze_path = "data/Test/Dehaze/"
+    testopt.denoise_path = "data/Test/Denoise/"
 
-        testopt.derain_path = "data/Test/Derain/"
-        testopt.dehaze_path = "data/Test/Dehaze/"
-        testopt.denoise_path = "data/Test/Denoise/"
+    net.eval()
+    p = []
+    s = []
 
-        net.eval()
-        p = []
-        s = []
+    if testopt.mode == 0:
+        for testset, name in zip(denoise_tests, denoise_splits):
+            print('Start {} testing Sigma=15...'.format(name))
+            test_Denoise(net, testset, sigma=15, interact_label=testopt.mode)
 
-        if testopt.mode == 0:
-            for testset, name in zip(denoise_tests, denoise_splits):
-                print('Start {} testing Sigma=15...'.format(name))
-                test_Denoise(net, testset, sigma=15, interact_label=testopt.mode)
+            print('Start {} testing Sigma=25...'.format(name))
+            test_Denoise(net, testset, sigma=25, interact_label=testopt.mode)
 
-                print('Start {} testing Sigma=25...'.format(name))
-                test_Denoise(net, testset, sigma=25, interact_label=testopt.mode)
+            print('Start {} testing Sigma=50...'.format(name))
+            test_Denoise(net, testset, sigma=50, interact_label=testopt.mode)
 
-                print('Start {} testing Sigma=50...'.format(name))
-                test_Denoise(net, testset, sigma=50, interact_label=testopt.mode)
+    elif testopt.mode == 1:
+        print('Start testing rain streak removal...')
+        derain_base_path = testopt.derain_path
+        for name in derain_splits:
+            print('Start testing {} rain streak removal...'.format(name))
+            testopt.derain_path = os.path.join(derain_base_path, name)
+            derain_set = DerainDehazeDataset(testopt, task='derain', addnoise=False, sigma=15)
+            test_Derain_Dehaze(net, derain_set, task="derain", interact_label=testopt.mode)
 
-        elif testopt.mode == 1:
-            print('Start testing rain streak removal...')
-            derain_base_path = testopt.derain_path
-            for name in derain_splits:
-                print('Start testing {} rain streak removal...'.format(name))
-                testopt.derain_path = os.path.join(derain_base_path, name)
-                derain_set = DerainDehazeDataset(testopt, task='derain', addnoise=False, sigma=15)
-                test_Derain_Dehaze(net, derain_set, task="derain", interact_label=testopt.mode)
+    elif testopt.mode == 2:
+        print('Start testing SOTS...')
+        dehaze_set = DerainDehazeDataset(testopt,task='dehaze', addnoise=False, sigma=15)
+        test_Derain_Dehaze(net, dehaze_set, task="dehaze", interact_label=testopt.mode)
+    elif testopt.mode == 3:
+        for testset, name in zip(denoise_tests, denoise_splits):
+            print('Start {} testing Sigma=15...'.format(name))
+            p1, s1 = test_Denoise(net, testset, sigma=15, interact_label=0)
+            p.append(p1)
+            s.append(s1)
 
-        elif testopt.mode == 2:
-            print('Start testing SOTS...')
-            dehaze_set = DerainDehazeDataset(testopt,task='dehaze', addnoise=False, sigma=15)
-            test_Derain_Dehaze(net, dehaze_set, task="dehaze", interact_label=testopt.mode)
-        elif testopt.mode == 3:
-            for testset, name in zip(denoise_tests, denoise_splits):
-                print('Start {} testing Sigma=15...'.format(name))
-                p1, s1 = test_Denoise(net, testset, sigma=15, interact_label=0)
-                p.append(p1)
-                s.append(s1)
+            print('Start {} testing Sigma=25...'.format(name))
+            p2, s2 = test_Denoise(net, testset, sigma=25, interact_label=0)
+            p.append(p2)
+            s.append(s2)
 
-                print('Start {} testing Sigma=25...'.format(name))
-                p2, s2 = test_Denoise(net, testset, sigma=25, interact_label=0)
-                p.append(p2)
-                s.append(s2)
+            print('Start {} testing Sigma=50...'.format(name))
+            p3, s3 = test_Denoise(net, testset, sigma=50, interact_label=0)
+            p.append(p3)
+            s.append(s3)
+        print((p1+p2+p3)/3.0, (s1+s2+s3)/3.0)
 
-                print('Start {} testing Sigma=50...'.format(name))
-                p3, s3 = test_Denoise(net, testset, sigma=50, interact_label=0)
-                p.append(p3)
-                s.append(s3)
-            print((p1+p2+p3)/3.0, (s1+s2+s3)/3.0)
+        derain_base_path = testopt.derain_path
+        print(derain_splits)
+        for name in derain_splits:
+            print('Start testing {} rain streak removal...'.format(name))
+            testopt.derain_path = os.path.join(derain_base_path, name)
+            derain_set = DerainDehazeDataset(testopt,task="derain",addnoise=False, sigma=15)
+            p4, s4 = test_Derain_Dehaze(net, derain_set, task="derain", interact_label=1)
+            p.append(p4)
+            s.append(s4)
 
-            derain_base_path = testopt.derain_path
-            print(derain_splits)
-            for name in derain_splits:
-                print('Start testing {} rain streak removal...'.format(name))
-                testopt.derain_path = os.path.join(derain_base_path, name)
-                derain_set = DerainDehazeDataset(testopt,task="derain",addnoise=False, sigma=15)
-                p4, s4 = test_Derain_Dehaze(net, derain_set, task="derain", interact_label=1)
-                p.append(p4)
-                s.append(s4)
+        print('Start testing SOTS...')
+        dehaze_set = DerainDehazeDataset(testopt,task="dehaze",addnoise=False, sigma=15)
+        p5, s5 = test_Derain_Dehaze(net, dehaze_set, task="dehaze", interact_label=2)
+        p.append(p5)
+        s.append(s5)
 
-            print('Start testing SOTS...')
-            dehaze_set = DerainDehazeDataset(testopt,task="dehaze",addnoise=False, sigma=15)
-            p5, s5 = test_Derain_Dehaze(net, dehaze_set, task="dehaze", interact_label=2)
-            p.append(p5)
-            s.append(s5)
-
-            print(f"Avg PSNR:{(sum(p) / len(p)):.2f}, Avg SSIM:{(sum(s) / len(s)):.3f}")
+        print(f"Avg PSNR:{(sum(p) / len(p)):.2f}, Avg SSIM:{(sum(s) / len(s)):.3f}")

@@ -185,7 +185,7 @@ class MyProgressBar(TQDMProgressBar):
         pl_module.total_acc = 0.0
         pl_module.total_deg_acc = 0.0
         pl_module.total_psnr = 0.0
-        print("")  # 换行
+        print("")
 
     def on_train_end(self, trainer, pl_module):
         super().on_train_end(trainer, pl_module)

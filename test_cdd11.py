@@ -100,46 +100,43 @@ if __name__ == '__main__':
 
     print("CKPT name : {}".format(ckpt_path))
 
-    for epoch in range(29, 30): # best: 202 205
-        name = 'last'
-        net = R2RLocal(ckpt_path=ckpt_path, prompts_path=testopt.prompt_dir, prompts_name=name, train_mode="finetune").cuda()
+    name = 'last'
+    net = R2RLocal(ckpt_path=ckpt_path, prompts_path=testopt.prompt_dir, prompts_name=name, train_mode="finetune").cuda()
 
-        print(str(epoch)+"---------------------------------------------------------------------")
+    net.eval()
 
-        net.eval()
+    test_single = {"single":["low", "haze", "rain", "snow"]}
+    test_double = {"double":["low_haze", "low_rain", "low_snow", "haze_rain", "haze_snow"]}
+    test_triple = {"triple":["low_haze_rain", "low_haze_snow"]}
+    deg_type = {1:test_single,2:test_double,3:test_triple}
 
-        test_single = {"single":["low", "haze", "rain", "snow"]}
-        test_double = {"double":["low_haze", "low_rain", "low_snow", "haze_rain", "haze_snow"]}
-        test_triple = {"triple":["low_haze_rain", "low_haze_snow"]}
-        deg_type = {1:test_single,2:test_double,3:test_triple}
+    p=[]
+    s=[]
 
-        p=[]
-        s=[]
-
-        if testopt.mode==4:
-            for i in range(1, 4):
-                key = list(deg_type[i].keys())[0]
-
-                print("--------> Testing on", key)
-                for subset in deg_type[i][key]:
-                    dataset = CDD11(testopt, split="test", subset=subset)
-
-                    psnr, ssim = test_CDD11(net, dataset, subset=subset)
-                    print("{}--------> PSNR={:.2f} SSIM={:.3f}".format(subset, psnr, ssim))
-                    p.append(psnr)
-                    s.append(ssim)
-            print(f"Avg PSNR:{(sum(p) / len(p)):.2f}, Avg SSIM:{(sum(s) / len(s)):.3f}")
-        else:
-
-            key = list(deg_type[testopt.mode].keys())[0]
+    if testopt.mode==4:
+        for i in range(1, 4):
+            key = list(deg_type[i].keys())[0]
 
             print("--------> Testing on", key)
-            for subset in deg_type[testopt.mode][key]:
-
+            for subset in deg_type[i][key]:
                 dataset = CDD11(testopt, split="test", subset=subset)
 
                 psnr, ssim = test_CDD11(net, dataset, subset=subset)
                 print("{}--------> PSNR={:.2f} SSIM={:.3f}".format(subset, psnr, ssim))
                 p.append(psnr)
                 s.append(ssim)
-            print(f"Avg PSNR:{(sum(p) / len(p)):.2f}, Avg SSIM:{(sum(s) / len(s)):.3f}")
+        print(f"Avg PSNR:{(sum(p) / len(p)):.2f}, Avg SSIM:{(sum(s) / len(s)):.3f}")
+    else:
+
+        key = list(deg_type[testopt.mode].keys())[0]
+
+        print("--------> Testing on", key)
+        for subset in deg_type[testopt.mode][key]:
+
+            dataset = CDD11(testopt, split="test", subset=subset)
+
+            psnr, ssim = test_CDD11(net, dataset, subset=subset)
+            print("{}--------> PSNR={:.2f} SSIM={:.3f}".format(subset, psnr, ssim))
+            p.append(psnr)
+            s.append(ssim)
+        print(f"Avg PSNR:{(sum(p) / len(p)):.2f}, Avg SSIM:{(sum(s) / len(s)):.3f}")

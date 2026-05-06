@@ -11,16 +11,16 @@ import matplotlib.pyplot as plt
 from sklearn.manifold import TSNE
 class LayerNorm3D(nn.Module):
     """
-    对 5D 特征进行 LayerNorm。
-    输入: [1, C, N, H, W] (1 不是 batch)
-    可以指定归一化维度: 'C' 或 'N'
+    LayerNorm for 5D features.
+    Input shape: [1, C, N, H, W], where the leading 1 is not the batch size.
+    The normalization dimension can be 'C' or 'N'.
     """
     def __init__(self, normalized_dim, num_features, eps: float = 1e-6):
         """
         Args:
-            normalized_dim: str, 'C' 或 'N'
-            num_features: int, 对应维度的大小
-            eps: float, 防止除零
+            normalized_dim: 'C' or 'N'
+            num_features: size of the normalized dimension
+            eps: numerical stability term
         """
         super().__init__()
         assert normalized_dim in ['C', 'B'], "normalized_dim must be 'C' or 'B'"
@@ -33,18 +33,12 @@ class LayerNorm3D(nn.Module):
         B, C, N, H, W = x.shape
         x = x.squeeze(0)
         if self.normalized_dim == 'C':
-            # 对 C 维做 LayerNorm
-            # 先 permute 到 [N,H,W,C]
             x_perm = x.permute(1,2,3,0)  # [N,H,W,C]
             x_norm = self.layer_norm(x_perm)
-            # permute 回原始顺序
             x_out = x_norm.permute(3,0,1,2)  # [1,C,N,H,W]
         else:
-            # 对 N 维做 LayerNorm
-            # 先 permute 到 [C,H,W,N]
             x_perm = x.permute(0,2,3,1)  # [C,H,W,N]
             x_norm = self.layer_norm(x_perm)
-            # permute 回原始顺序
             x_out = x_norm.permute(0,3,1,2)  # [1,C,N,H,W]
 
         return x_out.unsqueeze(0)
@@ -70,7 +64,7 @@ class DegradationMemory(nn.Module):
                  lowlight_bank_value=None,
                  deg_types=["denoise_15"]                 ):
         super().__init__()
-        self.deg_types = deg_types  # 退化类型
+        self.deg_types = deg_types
         self.T_max = T_max
         self.update_step = T_max//5
         self.key_dim=key_dim
@@ -188,17 +182,12 @@ class DegradationMemory(nn.Module):
 
 
     def update_bank(self, deg_type, mk, mv):
-        # mk = mk.clone().detach()
-        # mv = mv.clone().detach()
         if deg_type == "denoise":
 
             B, C, H, W = mk.shape
             if B == 0:
                 return
             n = self.T_max // B + 1
-            # n  # 拼接倍数
-
-            # 先复制成列表，再拼接
             k_list = [mk for _ in range(n)]
             mk = torch.cat(k_list, dim=0)  # [B*n, 512, H, W]
 
@@ -223,17 +212,11 @@ class DegradationMemory(nn.Module):
                     self.denoise_bank_key = [update_keys[i:i+1] for i in range(update_keys.shape[0])]
                     self.denoise_bank_value = [update_values[i:i+1] for i in range(update_keys.shape[0])]
                     return
-                #     self.denoise_bank_key.append(mk[i:i + 1])
-                #     self.denoise_bank_value.append(mv[i:i + 1])
-
         elif deg_type == "derain":
             B, C, H, W = mk.shape
             if B == 0:
                 return
             n = self.T_max // B + 1
-            # n  # 拼接倍数
-
-            # 先复制成列表，再拼接
             k_list = [mk for _ in range(n)]
             mk = torch.cat(k_list, dim=0)  # [B*n, 512, H, W]
 
@@ -243,8 +226,6 @@ class DegradationMemory(nn.Module):
                 if len(self.derain_bank_key) < self.T_max:
                     self.derain_bank_key.append(mk[i:i+1])
                     self.derain_bank_value.append(mv[i:i+1])
-                    # return
-
                 else:
                     indices = list(range(len(self.derain_bank_key)))
                     random.shuffle(indices)
@@ -259,18 +240,11 @@ class DegradationMemory(nn.Module):
                     self.derain_bank_key = [update_keys[i:i+1] for i in range(update_keys.shape[0])]
                     self.derain_bank_value = [update_values[i:i+1] for i in range(update_keys.shape[0])]
                     return
-                    # self.derain_bank_key.append(mk[i:i + 1])
-                    # self.derain_bank_value.append(mv[i:i + 1])
-
-
         elif deg_type == "dehaze":
             B, C, H, W = mk.shape
             if B == 0:
                 return
             n = self.T_max // B + 1
-            # n  # 拼接倍数
-
-            # 先复制成列表，再拼接
             k_list = [mk for _ in range(n)]
             mk = torch.cat(k_list, dim=0)  # [B*n, 512, H, W]
 
@@ -295,17 +269,11 @@ class DegradationMemory(nn.Module):
                     self.dehaze_bank_key = [update_keys[i:i+1] for i in range(update_keys.shape[0])]
                     self.dehaze_bank_value = [update_values[i:i+1] for i in range(update_keys.shape[0])]
                     return
-                    #
-                    # self.dehaze_bank_key.append(mk[i:i + 1])
-                    # self.dehaze_bank_value.append(mv[i:i + 1])
         elif deg_type == "deblur":
             B, C, H, W = mk.shape
             if B == 0:
                 return
             n = self.T_max // B + 1
-            # n  # 拼接倍数
-
-            # 先复制成列表，再拼接
             k_list = [mk for _ in range(n)]
             mk = torch.cat(k_list, dim=0)  # [B*n, 512, H, W]
 
@@ -335,9 +303,6 @@ class DegradationMemory(nn.Module):
             if B == 0:
                 return
             n = self.T_max // B + 1
-            # n  # 拼接倍数
-
-            # 先复制成列表，再拼接
             k_list = [mk for _ in range(n)]
             mk = torch.cat(k_list, dim=0)  # [B*n, 512, H, W]
 
@@ -365,9 +330,6 @@ class DegradationMemory(nn.Module):
 
 
     def get_deg_prompt(self, qk, interact_label=None):
-
-        # if len(self.denoise_bank_key) == 0 or len(self.derain_bank_key) == 0 or len(self.dehaze_bank_key) == 0 or len(self.deblur_bank_key) == 0 or len(self.lowlight_bank_key) == 0:
-        #     return None, 0
         if len(self.denoise_bank_key) != 0 :
             mk = torch.cat(self.denoise_bank_key, dim=0)
             mv = torch.cat(self.denoise_bank_value, dim=0)
@@ -410,15 +372,12 @@ class DegradationMemory(nn.Module):
 
             return
         kv_compress = self.T_max - self.update_step + 1
-        # kv_compress = 10000000
-        # print(len(self.derain_bank_key))
         if len(self.denoise_bank_key) != 0 :
             self.denoise_bank_key = self.denoise_bank_key[:kv_compress].copy()
             self.denoise_bank_value = self.denoise_bank_value[:kv_compress].copy()
             for i in range(len(self.denoise_bank_key)):
                 self.denoise_bank_key[i] = torch.nan_to_num(self.denoise_bank_key[i].clone().detach(), nan=0.0, posinf=1, neginf=-1)
                 self.denoise_bank_value[i] = torch.nan_to_num(self.denoise_bank_value[i].clone().detach(), nan=0.0, posinf=1, neginf=-1)
-                # feature_list = [torch.nan_to_num(t, nan=0.0, posinf=1e6, neginf=-1e6) for t in feature_list]
         if len(self.derain_bank_key) != 0 :
             self.derain_bank_key = self.derain_bank_key[:kv_compress].copy()
             self.derain_bank_value = self.derain_bank_value[:kv_compress].copy()
@@ -457,155 +416,20 @@ class DegradationMemory(nn.Module):
         h, w = qk.shape[2], qk.shape[3]
         ck = mk.shape[1]
 
-        # 步骤1: 展平空间维度
         mk_flat = mk.view(n_total, -1)  # [n_total, ck*h*w]
-        # if torch.isnan(mk_flat).any() or torch.isinf(mk_flat).any():
-        #     print("mk_flat is nan")
-        #     assert 1==0
-        #
-        #     print(n1, n2, n3)
         qk_flat = qk.view(batch_size, -1)  # [batch_size, ck*h*w]
-        # if torch.isnan(qk_flat).any() or torch.isinf(qk_flat).any():
-        #     print("qk_flat is nan")
-        #     assert 1==0
-
-
         mv_flat = mv.view(n_total, -1)  # [n_total, 512*h*w]
-        # if torch.isnan(mv_flat).any() or torch.isinf(mv_flat).any():
-        #     print("mv_flat is nan")
-        #     assert 1==0
-
-        # 步骤2: 计算稳定的相似度
-
-        # 步骤1.5: L2归一化
-        mk_flat = F.normalize(mk_flat, dim=1)  # 每行向量单位化
+        mk_flat = F.normalize(mk_flat, dim=1)
         qk_flat = F.normalize(qk_flat, dim=1)
-
-        # 步骤2: 计算稳定的相似度
-        # 使用归一化向量后的dot product，相当于 cosine similarity
         similarity = torch.matmul(qk_flat, mk_flat.t()) / math.sqrt(ck * h * w)
-
-        # mk_norm_sq = torch.sum(mk_flat ** 2, dim=1)  # [n_total]
-        # # mk_norm_sq = torch.clamp(mk_norm_sq, max=1e3)  # 或更合理的阈值
-        # dot_product = torch.matmul(qk_flat, mk_flat.t())  # [batch_size, n_total]
-        # similarity = (dot_product -  0.5 * mk_norm_sq.unsqueeze(0)) / math.sqrt(ck * h * w)
-
-        # 步骤3: 多种类别预测策略
-        # def get_class_scores(method):
-        #     """根据不同方法计算类别得分"""
-        #     if method == 'max':
-        #         # 原始最大值
-        #         return [
-        #             similarity[:, :n1].max(dim=1).values,
-        #             similarity[:, n1:n1 + n2].max(dim=1).values,
-        #             similarity[:, n1 + n2:n1+n2+n3].max(dim=1).values,
-        #             similarity[:, n1 + n2+n3:n1+n2+n3+n4].max(dim=1).values,
-        #             similarity[:, n1 + n2+n3+n4:].max(dim=1).values
-        #         ]
-        #
-        #     elif method == 'mean':
-        #         # 平均值
-        #         return [
-        #             similarity[:, :n1].mean(dim=1),
-        #             similarity[:, n1:n1 + n2].mean(dim=1),
-        #             similarity[:, n1 + n2:n1+n2+n3].mean(dim=1),
-        #             similarity[:, n1 + n2+n3:n1+n2+n3+n4].mean(dim=1),
-        #             similarity[:, n1+n2+n3+n4:].mean(dim=1)
-        #         ]
-        #
-        #     # elif method == 'weighted':
-        #     #     # 加权组合
-        #     #     max_n1 = similarity[:, :n1].max(dim=1).values
-        #     #     mean_n1 = similarity[:, :n1].mean(dim=1)
-        #     #     score_n1 = weighted_alpha * max_n1 + (1 - weighted_alpha) * mean_n1
-        #     #
-        #     #     max_n2 = similarity[:, n1:n1 + n2].max(dim=1).values
-        #     #     mean_n2 = similarity[:, n1:n1 + n2].mean(dim=1)
-        #     #     score_n2 = weighted_alpha * max_n2 + (1 - weighted_alpha) * mean_n2
-        #     #
-        #     #     max_n3 = similarity[:, n1 + n2:].max(dim=1).values
-        #     #     mean_n3 = similarity[:, n1 + n2:].mean(dim=1)
-        #     #     score_n3 = weighted_alpha * max_n3 + (1 - weighted_alpha) * mean_n3
-        #     #
-        #     #     return [score_n1, score_n2, score_n3]
-        #
-        #     elif method == 'topk':
-        #         # top-k平均值
-        #         def topk_mean(sims, k):
-        #             # k = min(k, sims.shape[1])
-        #             # print(k)
-        #             if k == 0:
-        #                 return torch.full((batch_size,), float('-inf'), device=device)
-        #             topk_vals = torch.topk(sims, k, dim=1).values
-        #             return topk_vals.mean(dim=1)
-        #         topk_k = min(n1, n2, n3, n4, n5)
-        #         return [
-        #             topk_mean(similarity[:, :n1], topk_k),
-        #             topk_mean(similarity[:, n1:n1 + n2], topk_k),
-        #             topk_mean(similarity[:, n1 + n2:n1+n2+n3], topk_k),
-        #             topk_mean(similarity[:, n1 + n2+n3:n1+n2+n3+n4], topk_k),
-        #             topk_mean(similarity[:, n1+n2+n3+n4:], topk_k)
-        #         ]
-        #
-        #     # elif method == 'max_abs':
-        #     #     # 绝对值最大值（原方案）
-        #     #     abs_sim = torch.abs(similarity)
-        #     #     return [
-        #     #         abs_sim[:, :n1].max(dim=1).values,
-        #     #         abs_sim[:, n1:n1 + n2].max(dim=1).values,
-        #     #         abs_sim[:, n1 + n2:].max(dim=1).values
-        #     #     ]
-        #
-        # # 计算类别得分
-        # scores_n1, scores_n2, scores_n3, scores_n4, scores_n5 = get_class_scores(pred_method)
-        # scores = torch.stack([scores_n1, scores_n2, scores_n3, scores_n4, scores_n5], dim=1)  # [batch_size, 5]
-        #
-        #
-        # predictions = torch.argmax(scores, dim=1)  # [batch_size]
-        # if interact_label is not None:
-        #     predictions = interact_label
-        #
-        # # if interact_label is  None:
-        # #     print(predictions)
-        # # print(scores)
-        # # print(predictions)
-        # # print(scores.shape)
-        # # print(predictions.shape)
-        # # assert 1 == 0
-        #
-        # # 步骤4: 创建类别掩码
-        # class_masks = torch.zeros(5, n_total, dtype=torch.bool, device=device)
-        # class_masks[0, :n1] = True
-        # class_masks[1, n1:n1 + n2] = True
-        # class_masks[2, n1 + n2:n1+n2+n3] = True
-        # class_masks[3, n1 + n2+n3:n1+n2+n3+n4] = True
-        # class_masks[4, n1+n2+n3+n4:] = True
-        #
-        # sample_masks = class_masks[predictions]  # [batch_size, n_total]
-        #
-        # # 步骤5: 数值稳定的softmax
-        # masked_similarity = similarity.clone()
-        # # masked_similarity[~sample_masks] = float('-inf')
-        # masked_similarity[~sample_masks] = -1e6
-
         weights = torch.softmax(similarity, dim=1)
-
-        # max_vals = torch.max(masked_similarity, dim=1, keepdim=True)[0]
-        # stable_exp = torch.exp(masked_similarity - max_vals)
-        # weights = stable_exp / (torch.sum(stable_exp, dim=1, keepdim=True))
-
-        # 步骤6: 加权求和
         weighted_output_flat = torch.matmul(weights, mv_flat)
         output = weighted_output_flat.view(batch_size, self.value_dim , h, w)
-
-        # return predictions, output, similarity, weights
         return output
 
 
 
     def save_prompts(self, epoch, save_root="./save_prompts"):
-        # os.makedirs(save_root, exist_ok=True)
-        # self.clear_grad()
         pairs = [("denoise", self.denoise_bank_key, self.denoise_bank_value),
                  ("derain", self.derain_bank_key, self.derain_bank_value),
                  ("dehaze", self.dehaze_bank_key, self.dehaze_bank_value),
@@ -619,14 +443,11 @@ class DegradationMemory(nn.Module):
                 os.makedirs(pair_dir)
 
             if deg_type in self.deg_types[0]:
-            # 转 CPU，避免 pickle CUDA tensor 报错
                 k = [t.cpu() for t in key]
                 v = [t.cpu() for t in value]
 
                 torch.save(k, os.path.join(pair_dir, f"{deg_type}_key.pt"))
                 torch.save(v, os.path.join(pair_dir, f"{deg_type}_value.pt"))
-        # print(f"saved epoch={str(epoch)} prompts")
-
     def load_prompts(self, epoch, save_root="./save_prompts", amp=True, drop_last=True, deg_type="denoise"):
         pair_dir = os.path.join(save_root, str(epoch))
         if drop_last:
@@ -655,20 +476,9 @@ class DegradationMemory(nn.Module):
                                       torch.load(os.path.join(pair_dir, "lowlight_value.pt"))[:kv_compress]]
 
         print(f"loaded epoch={str(pair_dir)} prompts")
-
-
-
-
     def plot_tsne(self, keys, values, ids,
                              n_samples=64, random_state=42, save_path="./t-SNE", epoch=0):
-        """
-        左右两张 t-SNE 图（相同 id 用相同颜色），支持字符串 id 和保存图像
-
-        feature_lists_left: 左边的特征数组 [list0, list1, list2]
-        feature_lists_right: 右边的特征数组 [list3, list4, list5]
-        ids: 两组共享的 id，可以是字符串列表，例如 ["cat", "dog", "car"]
-        save_path: 保存路径，例如 "tsne_compare.png"
-        """
+        """Plot side-by-side t-SNE maps for keys and values."""
 
         def prepare_features(feature_lists, ids):
             all_features = []
@@ -678,13 +488,12 @@ class DegradationMemory(nn.Module):
                     features = torch.cat(feature_list, dim=0)
                     features_flat = features.flatten(start_dim=1)
                     all_features.append(features_flat.cpu().numpy())
-                    all_labels.extend([i] * features.shape[0])  # 字符串 id
+                    all_labels.extend([i] * features.shape[0])
             if len(all_features) == 0:
                 return None, None
             all_features = np.concatenate(all_features, axis=0)
             all_labels = np.array(all_labels)
 
-            # 随机采样
             if all_features.shape[0] > n_samples:
                 idx = np.random.choice(all_features.shape[0], n_samples, replace=False)
                 all_features = all_features[idx]
@@ -702,7 +511,6 @@ class DegradationMemory(nn.Module):
             ax.set_title(title)
             ax.legend()
 
-        # 颜色列表，保证左右一致
         colors = ["red", "blue", "green", "orange", "purple", "cyan", "olive", "navy","teal", "coral"]
 
         feats_left, labels_left = prepare_features(keys, ids)
@@ -715,21 +523,15 @@ class DegradationMemory(nn.Module):
             run_tsne_and_plot(feats_right, labels_right, axes[1], "Values", colors, ids)
 
         plt.tight_layout()
-        # 保存或显示
         if save_path is not None:
             save_path = os.path.join(save_path, str(epoch))
             if not os.path.exists(save_path):
                 os.makedirs(save_path)
             plt.savefig(os.path.join(save_path, "t-SNE.png"), dpi=300, bbox_inches="tight")
-            print(f"t-SNE 图已保存到: {save_path}")
+            print(f"Saved t-SNE plot to: {save_path}")
         else:
             plt.show()
-
-
-
-
     def save_tSNE(self, epoch=0):
-        # self.clear_grad()
         kv_compress = self.T_max - self.update_step + 1
         with torch.no_grad():
             keys = [self.denoise_bank_key[:kv_compress], self.derain_bank_key[:kv_compress], self.dehaze_bank_key[:kv_compress], self.deblur_bank_key[:kv_compress], self.lowlight_bank_key[:kv_compress]]
