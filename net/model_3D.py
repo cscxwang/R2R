@@ -378,7 +378,7 @@ class skipP(nn.Module):
         selected_features = features[batch_indices, topk_indices]  # [B, n, H, W]
         return selected_features
 class R2R(nn.Module):
-    def __init__(self, opt=None,  img_channel=3, width=64, middle_blk_num=1, enc_blk_nums=[1, 1, 1, 28], dec_blk_nums=[1, 1, 1, 1], key_dim=64, value_dim=512, is_train=True, stage=0, num_classes=3, train_mode="pretrain"):
+    def __init__(self, opt=None,  img_channel=3, width=32, middle_blk_num=1, enc_blk_nums=[1, 1, 1, 28], dec_blk_nums=[1, 1, 1, 1], key_dim=64, value_dim=512, is_train=True, stage=0, num_classes=3, train_mode="pretrain"):
         super().__init__()
         self.num_classes = num_classes
         key_dim = width * 2
