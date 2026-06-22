@@ -1,6 +1,12 @@
-# R2R
+# Retrieve-to-Restore: Efficient All-in-One Image Restoration with a Retrieval-Based Degradation Bank
 
-Official training and evaluation code for `R2R`, a prompt-based image restoration framework that supports:
+---
+
+The official PyTorch implementation of [Retrieve-to-Restore: Efficient All-in-One Image Restoration with a Retrieval-Based Degradation Bank](https://openaccess.thecvf.com/content/CVPR2026/html/Wang_Retrieve-to-Restore_Efficient_All-in-One_Image_Restoration_with_a_Retrieval-Based_Degradation_Bank_CVPR_2026_paper.html) (CVPR 2026).
+
+Weights: [Google Drive](https://drive.google.com/drive/folders/1KAAafchWfLCYthhyRUcc1Xz4iip3kWqF)
+
+`R2R` supports:
 
 - `1D`: single-task restoration
 - `3D`: denoise + derain + dehaze
@@ -484,4 +490,15 @@ save_prompts_1D/
 
 ## Citation
 
-If you use this repository in your research, please cite the corresponding paper once the public paper information is released.
+If you use this repository in your research, please cite:
+
+```bibtex
+@InProceedings{Wang_2026_CVPR,
+    author    = {Wang, Chenxu and Zhang, Kai and Yang, Jian},
+    title     = {Retrieve-to-Restore: Efficient All-in-One Image Restoration with a Retrieval-Based Degradation Bank},
+    booktitle = {Proceedings of the IEEE/CVF Conference on Computer Vision and Pattern Recognition (CVPR)},
+    month     = {June},
+    year      = {2026},
+    pages     = {1277-1287}
+}
+```
