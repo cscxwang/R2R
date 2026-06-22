@@ -6,6 +6,8 @@ The official PyTorch implementation of [Retrieve-to-Restore: Efficient All-in-On
 
 Weights: [Google Drive](https://drive.google.com/drive/folders/1KAAafchWfLCYthhyRUcc1Xz4iip3kWqF)
 
+![Figure 1](assets/figure1.png)
+
 `R2R` supports:
 
 - `1D`: single-task restoration
@@ -22,6 +24,24 @@ For each run, only the final checkpoint and final prompt bank are kept:
 
 - checkpoint: `last.ckpt`
 - prompt bank: `last`
+
+## Overview
+
+![Figure 2](assets/figure2.png)
+
+## Results
+
+### 3D Restoration
+
+![Table 1](assets/table1_3d.png)
+
+### 5D Restoration
+
+![Table 2](assets/table2_5d.png)
+
+### Compositional Restoration
+
+![Compos Results](assets/compos_results.png)
 
 ## Repository Structure
 
